@@ -1,0 +1,32 @@
+{
+  "name": "blacktigerjs",
+  "dependencies": {
+    "angular": "^1.3.0",
+    "angular-cookies": "^1.3.0",
+    "angular-resource": "^1.3.0",
+    "angular-sanitize": "^1.3.0",
+    "angular-local-storage": "^0.1.5",
+    "sockjs": "0.3.*",
+    "stomp-websocket": "2.3.*"
+  },
+  "devDependencies": {
+    "angular-mocks": "~1.3.0",
+    "angular-scenario": "~1.3.0"
+  },
+  "appPath": "src",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/DRB-IT/blacktigerjs"
+  },
+  "homepage": "https://github.com/DRB-IT/blacktigerjs",
+  "version": "0.1.6",
+  "_release": "0.1.6",
+  "_resolution": {
+    "type": "version",
+    "tag": "0.1.6",
+    "commit": "18724d906ec3322c67ef8ae27be26a69aa80e6f2"
+  },
+  "_source": "git://github.com/DRB-IT/blacktigerjs.git",
+  "_target": "~0.1.2",
+  "_originalSource": "blacktigerjs"
+}

@@ -1,0 +1,10 @@
+<ion-view view-title="Ønsker at svare">
+  <ion-content>
+    <div class="list">
+      <div class="item item-icon-right" ng-repeat="participant in context.room.participants | filter:isShown">
+          <h2>{{participant.name}}</h2>
+          <i class="icon ion-ios7-volume-high" ng-class="{'stable':participant.muted,'positive':!participant.muted}"></i>
+      </div>
+    </div>
+  </ion-content>
+</ion-view>
