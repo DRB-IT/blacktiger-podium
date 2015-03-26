@@ -27,10 +27,18 @@ blacktigerApp
             });
 
             $rootScope.$on("login", function (event, user) {
-                $location.path('/comments');
-                PushEventSvc.connect().then($rootScope.updateCurrentRoom);
+                PushEventSvc.connect().then(function() {
+                    $location.path('/comments');
+                    $rootScope.updateCurrentRoom();
+                }, function() {
+                    alert('Unable to connect');
+                });
             });
-
+            
+            $rootScope.$on('PushEventSvc.Lost_Connection', function() {
+                alert('Lost Connection');
+            });
+            
             $rootScope.updateCurrentRoom = function () {
                 var ids = MeetingSvc.findAllIds();
                 if ($rootScope.currentUser && $rootScope.currentUser.roles.indexOf('ROLE_HOST') >= 0 && ids.length > 0) {
@@ -69,6 +77,16 @@ blacktigerApp
                             'tab-comments': {
                                 templateUrl: 'templates/tab-comments.html',
                                 controller: 'CommentsCtrl'
+                            }
+                        }
+                    })
+                    
+                    .state('tab.settings', {
+                        url: '/settings',
+                        views: {
+                            'tab-settings': {
+                                templateUrl: 'templates/tab-settings.html',
+                                controller: 'SettingsCtrl'
                             }
                         }
                     })

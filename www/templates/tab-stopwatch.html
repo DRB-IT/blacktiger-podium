@@ -1,20 +1,17 @@
-<ion-view view-title="Stopur">
+<ion-view view-title="Stopur" class="stopwatch">
   <ion-content class="stable-bg">
       <div class="row light-bg padding">
           <div class="col col-center" align="center">
-              <h1>04:58</h1>
+              <div class="timestamp">{{elapsedTime|time:1:2}}</div>
           </div>
       </div>
       <div style="height:30px"><!-- SPACER --></div>
       <div class="row padding">
           <div class="col col-50 col-offset-25" align="center">
-              <button class="button button-positive">
-                Start
+              <button class="button button-large" ng-click="toggle()" ng-class="{'button-positive':state==='idle','button-assertive':state!=='idle'}">
+                {{state==='idle' ? 'Start' : 'Stop'}}
               </button>
               
-              <button class="button button-stable">
-                Stop
-              </button>
           </div>
       </div>
       

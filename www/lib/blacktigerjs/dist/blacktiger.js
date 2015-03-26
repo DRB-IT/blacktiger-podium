@@ -17,6 +17,15 @@ var $btmod = angular.module('blacktiger', [
     'LocalStorageModule'
 ]);
 
+$btmod.config(["$httpProvider", function($httpProvider) {
+    $httpProvider.interceptors.push('AuthorizationHeaderSvc');
+}]);
+
+$btmod.run(["HistorySvc", function(HistorySvc) {
+    // Dummy to make sure that HistorySvc is initialized from the beginning.
+    HistorySvc.getCookieName();
+}]);
+
 /*global $btmod*/
 'use strict';
 
@@ -59,6 +68,33 @@ $btmod.provider('blacktiger', function () {
 });
 
 
+/*global $btmod*/
+'use strict';
+
+/**
+ * @memberOf! blacktiger#
+ * @name AuthorizationHeaderSvc
+ * @description
+ * 
+ * Service for applying Authorization Header to all requests to the serviceUrl
+ * 
+ * Exposes setToken(<token>). If token has not been set, the header is not applied.
+ */
+$btmod.factory('AuthorizationHeaderSvc', ["blacktiger", function (blacktiger) {
+    var token = undefined;
+    return {
+        setToken: function(newToken) {
+            token = newToken;
+        },
+        'request': function(config) {
+            if(angular.isDefined(token) && config.url.substr(0, blacktiger.getServiceUrl().length) === blacktiger.getServiceUrl()) {
+                config.headers = config.headers || {};
+                config.headers.Authorization = token;
+            }
+            return config;
+        }
+    };
+}]);
 /*global $btmod*/
 'use strict';
 
@@ -174,15 +210,37 @@ $btmod.factory('HistorySvc', ["$rootScope", "$cookieStore", "blacktiger", "$log"
         $rootScope.$broadcast('History.Updated');
     };
 
-    var resetHistory = function () {
-        $log.debug('Resetting history data');
-        history = {};
-        $cookieStore.put(historyCookieName, {});
+    var cleanHistory = function (keepActiveCalls) {
+        $log.debug('Resetting history data [keepActiveCalls=' + keepActiveCalls + ']');
+        if(keepActiveCalls) {
+            
+            angular.forEach(history, function(room, key) {
+                var entriesToDelete = [], i;
+                angular.forEach(room, function(entry, key) {
+                    for(i=entry.calls.length-1;i>=0;i--) {
+                        if(entry.calls[i].end !== null) {
+                            entry.calls.splice(i,1);
+                        }
+                    }
+                    
+                    if(entry.calls.length === 0) {
+                        entriesToDelete.push(key);
+                    }
+                });
+                
+                for(i=0;i<entriesToDelete.length;i++) {
+                    delete room[entriesToDelete[i]];
+                }
+            });
+        } else {
+            history = {};
+        }
+        $cookieStore.put(historyCookieName, history);
         fireUpdated();
     };
 
     if (!history || !angular.isObject(history)) {
-        resetHistory();
+        cleanHistory(false);
     }
 
     var createRoomEntry = function (roomNo) {
@@ -207,7 +265,11 @@ $btmod.factory('HistorySvc', ["$rootScope", "$cookieStore", "blacktiger", "$log"
 
     var handleJoinEvent = function (event, roomNo, participant, resume) {
         $log.debug('HistorySvc:handleJoinEvent');
-        var entries, entry, call, key;
+        var entries, entry, call, key, timestamp = new Date().getTime();
+        
+        if(participant.millisSinceJoin) {
+            timestamp -= participant.millisSinceJoin;
+        }
 
         //Ignore the host. It will not be part of the history.
         if (participant.host) {
@@ -232,7 +294,7 @@ $btmod.factory('HistorySvc', ["$rootScope", "$cookieStore", "blacktiger", "$log"
                 callerId: participant.callerId,
                 phoneNumber: participant.phoneNumber,
                 name: participant.name,
-                firstCall: new Date().getTime(),
+                firstCall: timestamp,
                 calls: [],
                 channel: participant.channel,
                 totalDuration: 0
@@ -241,6 +303,7 @@ $btmod.factory('HistorySvc', ["$rootScope", "$cookieStore", "blacktiger", "$log"
         } else {
             entry = entries[key];
             entry.channel = participant.channel;
+            entry.name = participant.name;
         }
 
         if (resume && entry.calls.length > 0) {
@@ -249,7 +312,7 @@ $btmod.factory('HistorySvc', ["$rootScope", "$cookieStore", "blacktiger", "$log"
         } else {
             $log.debug('Appending new call to call list for participant.');
             call = {
-                start: new Date().getTime(),
+                start: timestamp,
                 end: null
             };
             entry.calls.push(call);
@@ -290,6 +353,10 @@ $btmod.factory('HistorySvc', ["$rootScope", "$cookieStore", "blacktiger", "$log"
         }
     };
 
+    var handleChangeEvent = function(event, roomNo, participant) {
+        handlePhoneBookUpdate(event, participant.phoneNumber, participant.name);
+    };
+    
     var handlePhoneBookUpdate = function (event, number, name) {
         $log.debug('HistorySvc:handlePhoneBookUpdate');
         angular.forEach(history, function (entries) {
@@ -349,6 +416,7 @@ $btmod.factory('HistorySvc', ["$rootScope", "$cookieStore", "blacktiger", "$log"
     $rootScope.$on('PushEvent.ConferenceStart', handleConferenceStartEvent);
     $rootScope.$on('PushEvent.Join', handleJoinEvent);
     $rootScope.$on('PushEvent.Leave', handleLeaveEvent);
+    $rootScope.$on('PushEvent.Change', handleChangeEvent);
     $rootScope.$on('PhoneBook.Update', handlePhoneBookUpdate);
 
     return {
@@ -369,8 +437,8 @@ $btmod.factory('HistorySvc', ["$rootScope", "$cookieStore", "blacktiger", "$log"
                 return entries[0];
             }
         },
-        deleteAll: function () {
-            resetHistory();
+        deleteAll: function (keepActiveCalls) {
+            cleanHistory(keepActiveCalls);
         },
         findAll: function () {
             return doFind();
@@ -414,7 +482,7 @@ $btmod.factory('HistorySvc', ["$rootScope", "$cookieStore", "blacktiger", "$log"
  * applying authorization header as a default header for all subsequent requests, setting user at $rootScope.currentUser
  * and finally broadcasting 'login' with the user as a parameter.
  */
-$btmod.factory('LoginSvc', ["$q", "localStorageService", "$http", "$rootScope", "blacktiger", "$log", function ($q, localStorageService, $http, $rootScope, blacktiger, $log) {
+$btmod.factory('LoginSvc', ["$q", "localStorageService", "$http", "$rootScope", "blacktiger", "$log", "AuthorizationHeaderSvc", function ($q, localStorageService, $http, $rootScope, blacktiger, $log, AuthorizationHeaderSvc) {
     var currentUser = null;
     return {
         authenticate: function (username, password, remember) {
@@ -425,7 +493,7 @@ $btmod.factory('LoginSvc', ["$q", "localStorageService", "$http", "$rootScope", 
             if (!username && !password) {
                 token = localStorageService.get('LoginToken');
             } else if (username && password) {
-                token = btoa(username + ':' + password);
+                token = btoa(username.trim() + ':' + password.trim());
             }
 
             if (token) {
@@ -443,7 +511,7 @@ $btmod.factory('LoginSvc', ["$q", "localStorageService", "$http", "$rootScope", 
                             };
                         }
                         localStorageService.remove('LoginToken');
-                        console.info('Unable to authenticate: ' + reason.message);
+                        $log.info('Unable to authenticate: ' + reason.message);
                         return $q.reject('Unable to authenticate. Reason: ' + reason.message);
                     }
 
@@ -456,10 +524,10 @@ $btmod.factory('LoginSvc', ["$q", "localStorageService", "$http", "$rootScope", 
                         password: password
                     };
                     user = response.data;
-
+                    
                     $log.info('Authenticatated. Returning user.');
-                    $http.defaults.headers.common.Authorization = authHeader;
-
+                    AuthorizationHeaderSvc.setToken(authHeader);
+                    
                     $log.info('Logged in as ' + user.username);
                     currentUser = user;
                     $rootScope.currentUser = user;
@@ -467,7 +535,7 @@ $btmod.factory('LoginSvc', ["$q", "localStorageService", "$http", "$rootScope", 
                     return user;
                 });
             } else {
-                console.info('Unable to authenticate.');
+                $log.info('Unable to authenticate.');
                 return $q.reject('No credentials specified or available for authentication.');
             }
 
@@ -476,7 +544,7 @@ $btmod.factory('LoginSvc', ["$q", "localStorageService", "$http", "$rootScope", 
             return currentUser;
         },
         deauthenticate: function () {
-            $http.defaults.headers.common.Authorization = undefined;
+            AuthorizationHeaderSvc.setToken(undefined);
             localStorageService.remove('LoginToken');
             $rootScope.$broadcast('logout', currentUser);
             currentUser = null;
@@ -537,6 +605,10 @@ $btmod.factory('MeetingSvc', ["$rootScope", "PushEventSvc", "ParticipantSvc", "$
             }
         }
         return count;
+    };
+    
+    var handleInitializing = function() {
+        rooms = [];
     };
 
     var handleConfStart = function (event, room) {
@@ -648,7 +720,8 @@ $btmod.factory('MeetingSvc', ["$rootScope", "PushEventSvc", "ParticipantSvc", "$
         });
 
     };
-
+                    
+    $rootScope.$on('PushEventSvc.Initializing', handleInitializing);
     $rootScope.$on('PushEvent.ConferenceStart', handleConfStart);
     $rootScope.$on('PushEvent.ConferenceEnd', handleConfEnd);
     $rootScope.$on('PushEvent.Join', handleJoin);
@@ -803,7 +876,7 @@ $btmod.factory('PhoneBookSvc', ["$http", "blacktiger", "$rootScope", function ($
  * - 'Mute' will be broadcast as 'PushEvent.Mute' with roomNo and channel as parameter.
  * - 'Unmute' will be broadcast as 'PushEvent.Unmute' with roomNo and channel as parameter.
  */
-$btmod.factory('PushEventSvc', ["$rootScope", "StompSvc", "RoomSvc", "blacktiger", "$log", "$q", function ($rootScope, StompSvc, RoomSvc, blacktiger, $log, $q) {
+$btmod.factory('PushEventSvc', ["$rootScope", "StompSvc", "RoomSvc", "LoginSvc", "blacktiger", "$log", "$q", function ($rootScope, StompSvc, RoomSvc, LoginSvc, blacktiger, $log, $q) {
     var stompClient;
 
     var handleEvent = function (event) {
@@ -835,36 +908,59 @@ $btmod.factory('PushEventSvc', ["$rootScope", "StompSvc", "RoomSvc", "blacktiger
     };
 
     var initializeSocket = function () {
+        $rootScope.$broadcast('PushEventSvc.Initializing');
         var deferred = $q.defer();
+
+        var user = LoginSvc.getCurrentUser();
+
+        if (!user) {
+            deferred.reject("Not authenticated via LoginSvc yet.");
+            return deferred.promise;
+        }
+
+        var fireInitialized = function() {
+            $rootScope.$broadcast('PushEventSvc.Initialized');
+            deferred.resolve();
+        };
+        
+        var connected = false;
         stompClient = StompSvc(blacktiger.getServiceUrl() + 'socket'); // jshint ignore:line
         stompClient.connect(null, null, function () {
-            //+ currentRoom
-            RoomSvc.query('full').$promise.then(function (result) {
-                var rooms = [];
-                angular.forEach(result, function (room) {
-                    rooms.push(room);
-                    $rootScope.$broadcast('PushEvent.ConferenceStart', room, true);
+            connected = true;
+
+            if (user.roles.indexOf('ROLE_ADMIN') >= 0) {
+                stompClient.subscribe('/queue/events/*', function (message) {
+                    var e = angular.fromJson(message.body);
+                    handleEvent(e);
                 });
-
-                if (rooms.length === 1) {
-                    stompClient.subscribe('/queue/events/' + rooms[0].id, function (message) {
-                        var e = angular.fromJson(message.body);
-                        handleEvent(e);
+                fireInitialized();
+            } else if (user.roles.indexOf('ROLE_HOST') >= 0) {
+                RoomSvc.query('full').$promise.then(function (result) {
+                    var rooms = [];
+                    angular.forEach(result, function (room) {
+                        rooms.push(room);
+                        $rootScope.$broadcast('PushEvent.ConferenceStart', room, true);
                     });
-                } else if (rooms.length > 1) {
-                    stompClient.subscribe('/queue/events/*', function (message) {
-                        var e = angular.fromJson(message.body);
-                        handleEvent(e);
-                    });
-                }
-
-                $rootScope.$broadcast('PushEventSvc.Initialized');
-                deferred.resolve();
-            });
+                    
+                    if(rooms.length === 0) {
+                        $rootScope.$broadcast('PushEventSvc.NoRooms');
+                    } else {
+                        stompClient.subscribe('/queue/events/' + rooms[0].id, function (message) {
+                            var e = angular.fromJson(message.body);
+                            handleEvent(e);
+                        });
+                    }
+                    fireInitialized();
+                });
+            }
 
         }, function (error) {
-            $rootScope.$broadcast('PushEventSvc.Lost_Connection', error);
-            deferred.reject(error);
+            if (connected) {
+                $rootScope.$broadcast('PushEventSvc.Lost_Connection', error);
+                connected = false;
+            } else {
+                deferred.reject(error);
+            }
         }, '/');
         return deferred.promise;
     };
@@ -984,8 +1080,13 @@ $btmod.factory('StompSvc', ["$rootScope", function ($rootScope) {
     var stompClient = {};
 
     function NGStomp(url) {
-        var ws = new SockJS(url);
-        this.stompClient = Stomp.over(ws);
+        if(url.indexOf('http://') === 0) {
+            url = 'ws://' + url.substr(7);
+        }
+        if(url.indexOf('https://') === 0) {
+            url = 'wss://' + url.substr(7);
+        }
+        this.stompClient = Stomp.client(url);
     }
 
     NGStomp.prototype.subscribe = function (queue, callback) {
@@ -1036,6 +1137,37 @@ $btmod.factory('StompSvc', ["$rootScope", function ($rootScope) {
 
 /**
  * @memberOf! blacktiger#
+ * @name SummarySvc
+ * @description
+ * 
+ * Service for retreiving summary of servers statistics
+ * 
+ * This service exposes one method: 'getSummary'.
+ * getSummary returns a promise that, when it is susccessfull, will hold an object with summary of the statistics.
+ * It will be retreived by requesting <serviceurl>/system/summary.
+ */
+$btmod.factory('SummarySvc', ["$http", "blacktiger", "$q", function ($http, blacktiger, $q) {
+    return {
+        getSummary: function () {
+            var deferred = $q.defer();
+            $http.get(blacktiger.getServiceUrl() + 'system/summary').then(function (resp) {
+                if(resp.status === 200) {
+                    deferred.resolve(resp.data);
+                } else {
+                    deferred.reject(resp);
+                }
+            });
+            return deferred.promise;
+        }
+    };
+}]);
+
+
+/*global $btmod*/
+'use strict';
+
+/**
+ * @memberOf! blacktiger#
  * @name SystemSvc
  * @description
  * 
@@ -1045,14 +1177,19 @@ $btmod.factory('StompSvc', ["$rootScope", function ($rootScope) {
  * getSystemInfo returns a promise that, when it is susccessfull, will hold an object with information about the system.
  * It will be retreived by requesting <serviceurl>/system/information.
  */
-$btmod.factory('SystemSvc', ["$http", "blacktiger", function ($http, blacktiger) {
+$btmod.factory('SystemSvc', ["$http", "blacktiger", "$q", function ($http, blacktiger, $q) {
     return {
         getSystemInfo: function () {
-            return $http.get(blacktiger.getServiceUrl() + 'system/information').success(function (data) {
-                return data;
-            }).error(function(data) {
-                return data;
+            var deferred = $q.defer();
+            $http.get(blacktiger.getServiceUrl() + 'system/information').then(function (resp) {
+                if(resp.status === 200) {
+                    deferred.resolve(resp.data);
+                } else {
+                    deferred.reject(resp);
+                }
             });
+            return deferred.promise;
         }
     };
 }]);
+

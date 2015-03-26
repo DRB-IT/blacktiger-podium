@@ -2,9 +2,9 @@
   "name": "blacktiger-podium",
   "private": "true",
   "devDependencies": {
-    "ionic": "driftyco/ionic-bower#1.0.0-beta.14"
+    "ionic": "driftyco/ionic-bower#1.0.0-rc.1"
   },
   "dependencies": {
-    "blacktigerjs": "~0.1.2"
+    "blacktigerjs": "0.2.x"
   }
 }
