@@ -1,7 +1,6 @@
-<ion-view view-title="Møderum">
+<ion-view view-title="Meeting">
     <ion-content>
         <div class="list">
-            <!--div class="item item-divider">Ønsker at svare</div-->
             <div class="item item-icon-right" ng-repeat="participant in context.room.participants|filter:{host:false}" ng-class="{'positive-bg':participant.commentRequested && participant.muted}">
                 <h2>{{participant.name}}</h2>
                 <i class="icon ion-ios-volume-high positive" ng-if="!participant.muted"></i>
