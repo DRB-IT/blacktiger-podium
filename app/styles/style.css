@@ -4,3 +4,7 @@
     
     line-height: 80px;
 }
+
+.positive-bg > * {
+    color:white;
+}

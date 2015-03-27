@@ -1,14 +1,12 @@
 <ion-view view-title="Møderum">
     <ion-content>
         <div class="list">
-            <div class="item">
-                Lyttere
-                <span class="badge badge-energized">{{(context.room.participants|filter:{host:false}).length}}</span>
-            </div>
-            <div class="item item-divider">Ønsker at svare</div>
-            <div class="item item-icon-right" ng-repeat="participant in context.room.participants| filter:isShown">
+            <!--div class="item item-divider">Ønsker at svare</div-->
+            <div class="item item-icon-right" ng-repeat="participant in context.room.participants|filter:{host:false}" ng-class="{'positive-bg':participant.commentRequested && participant.muted}">
                 <h2>{{participant.name}}</h2>
-                <i class="icon ion-ios7-volume-high" ng-class="{'stable':participant.muted,'positive':!participant.muted}"></i>
+                <i class="icon ion-ios-volume-high positive" ng-if="!participant.muted"></i>
+                <i class="icon ion-android-hand stable" ng-if="participant.commentRequested && participant.muted"></i>
+                <i class="icon stable" ng-if="!participant.commentRequested || participant.muted"></i>
             </div>
         </div>
     </ion-content>

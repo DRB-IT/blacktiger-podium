@@ -5,3 +5,8 @@ node_modules/
 platforms/
 plugins/
 nbproject/private
+dist
+www
+coverage
+nbproject
+.temp

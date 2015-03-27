@@ -1,7 +1,7 @@
 angular.module('blacktiger-podium.controllers', [])
 
         .controller('SignInCtrl', function ($scope, $state, LoginSvc) {
-
+            'use strict';
             $scope.signIn = function (user) {
                 console.log('Sign In', user);
 
@@ -9,28 +9,29 @@ angular.module('blacktiger-podium.controllers', [])
                     $scope.status = 'success';
                     user.username = '';
                     user.password = '';
-                }, function (reason) {
-                    $scope.status = "invalid";
+                }, function () {
+                    $scope.status = 'invalid';
                 });
             };
 
         })
 
-        .controller('CommentsCtrl', function ($scope, MeetingSvc, $log) {
-            $scope.isShown = function (value, index) {
-                return value.host === false && (value.commentRequested || !value.muted);
-            }
+        .controller('CommentsCtrl', function () {
+            'use strict';
+            
         })
         
         .controller('SettingsCtrl', function ($scope, LoginSvc) {
+            'use strict';
             $scope.logout = function () {
                 LoginSvc.deauthenticate();
-            }
+            };
             
             
         })
 
         .controller('StopwatchCtrl', function ($scope, $interval) {
+            'use strict';
             $scope.state = 'idle';
             $scope.startTime = null;
             $scope.elapsedTime = 0;
@@ -56,6 +57,7 @@ angular.module('blacktiger-podium.controllers', [])
                 $interval.cancel($scope.updateInterval);
             });
         }).filter('time', function () {
+            'use strict';
             var padNumber = function(input) {
                 return input < 10 ? '0' + input : input;
             };
@@ -81,7 +83,9 @@ angular.module('blacktiger-podium.controllers', [])
 
                     for(i=start;i<=stop;i++) {
                         result += padNumber(elements[i]);
-                        if(i<stop) result+= ':';
+                        if(i<stop) {
+                            result+= ':';
+                        }
                     }
                     
                     return result;

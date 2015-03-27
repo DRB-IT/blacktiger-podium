@@ -1,7 +1,8 @@
 var blacktigerApp = angular.module('blacktiger-podium', ['ionic', 'blacktiger-podium.controllers', 'blacktiger-podium.services', 'blacktiger']);
 
 blacktigerApp
-        .run(function ($ionicPlatform, $rootScope, LoginSvc, $location, PushEventSvc, AutoCommentRequestCancelSvc, MeetingSvc) {
+        .run(function ($ionicPlatform, $rootScope, LoginSvc, $location, PushEventSvc, AutoCommentRequestCancelSvc, MeetingSvc, $window) {
+            'use strict';
             $ionicPlatform.ready(function () {
                 // Hide the accessory bar by default (remove this to show the accessory bar above the keyboard
                 // for form inputs)
@@ -20,23 +21,23 @@ blacktigerApp
                 $location.path('/signin');
             });
 
-            $rootScope.$on("afterLogout", function () {
+            $rootScope.$on('afterLogout', function () {
                 $rootScope.rooms = null;
                 $rootScope.updateCurrentRoom();
                 $location.path('/signin');
             });
 
-            $rootScope.$on("login", function (event, user) {
+            $rootScope.$on('login', function () {
                 PushEventSvc.connect().then(function() {
                     $location.path('/comments');
                     $rootScope.updateCurrentRoom();
                 }, function() {
-                    alert('Unable to connect');
+                    $window.alert('Unable to connect');
                 });
             });
             
             $rootScope.$on('PushEventSvc.Lost_Connection', function() {
-                alert('Lost Connection');
+                $window.alert('Lost Connection');
             });
             
             $rootScope.updateCurrentRoom = function () {
@@ -52,6 +53,7 @@ blacktigerApp
         })
 
         .config(function ($stateProvider, $urlRouterProvider, blacktigerProvider, CONFIG) {
+            'use strict';
             if (CONFIG.serviceUrl) {
                 blacktigerProvider.setServiceUrl(CONFIG.serviceUrl);
             }
@@ -64,9 +66,9 @@ blacktigerApp
 
                     // setup an abstract state for the tabs directive
                     .state('tab', {
-                        url: "/tab",
+                        url: '/tab',
                         abstract: true,
-                        templateUrl: "templates/tabs.html"
+                        templateUrl: 'templates/tabs.html'
                     })
 
                     // Each tab has its own nav history stack:
@@ -108,6 +110,7 @@ blacktigerApp
 
 /** BOOTSTRAP **/
 angular.element(document).ready(function () {
+    'use strict';
     var initInjector = angular.injector(['ng']);
     var $http = initInjector.get('$http');
     $http.get('config.json').then(

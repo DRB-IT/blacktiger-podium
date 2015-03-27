@@ -20,12 +20,14 @@ module.exports = function (grunt) {
     // Project settings
     yeoman: {
       // configurable paths
+      version: require('./bower.json').version,
       app: 'app',
       scripts: 'scripts',
       styles: 'styles',
       images: 'images',
       test: 'test',
-      dist: 'www'
+      distFolder: 'dist',
+      buildFolder: 'www'
     },
 
     // Environment Variables for Angular App
@@ -90,7 +92,7 @@ module.exports = function (grunt) {
       },
       dist: {
         options: {
-          base: '<%= yeoman.dist %>'
+          base: '<%= yeoman.buildFolder %>'
         }
       },
       coverage: {
@@ -127,8 +129,8 @@ module.exports = function (grunt) {
           dot: true,
           src: [
             '.temp',
-            '<%= yeoman.dist %>/*',
-            '!<%= yeoman.dist %>/.git*'
+            '<%= yeoman.buildFolder %>/*',
+            '!<%= yeoman.buildFolder %>/.git*'
           ]
         }]
       },
@@ -165,7 +167,7 @@ module.exports = function (grunt) {
     useminPrepare: {
       html: '<%= yeoman.app %>/index.html',
       options: {
-        dest: '<%= yeoman.dist %>',
+        dest: '<%= yeoman.buildFolder %>',
         staging: '.temp',
         flow: {
           html: {
@@ -181,10 +183,10 @@ module.exports = function (grunt) {
 
     // Performs rewrites based on the useminPrepare configuration
     usemin: {
-      html: ['<%= yeoman.dist %>/**/*.html'],
-      css: ['<%= yeoman.dist %>/<%= yeoman.styles %>/**/*.css'],
+      html: ['<%= yeoman.buildFolder %>/**/*.html'],
+      css: ['<%= yeoman.buildFolder %>/<%= yeoman.styles %>/**/*.css'],
       options: {
-        assetsDirs: ['<%= yeoman.dist %>']
+        assetsDirs: ['<%= yeoman.buildFolder %>']
       }
     },
 
@@ -205,9 +207,9 @@ module.exports = function (grunt) {
         },
         files: [{
           expand: true,
-          cwd: '<%= yeoman.dist %>',
+          cwd: '<%= yeoman.buildFolder %>',
           src: ['*.html', 'templates/**/*.html'],
-          dest: '<%= yeoman.dist %>'
+          dest: '<%= yeoman.buildFolder %>'
         }]
       }
     },
@@ -219,17 +221,19 @@ module.exports = function (grunt) {
           expand: true,
           dot: true,
           cwd: '<%= yeoman.app %>',
-          dest: '<%= yeoman.dist %>',
+          dest: '<%= yeoman.buildFolder %>',
           src: [
             '<%= yeoman.images %>/**/*.{png,jpg,jpeg,gif,webp,svg}',
             '*.html',
+            'config.json',
+            'styles/style.css',
             'templates/**/*.html',
             'fonts/*'
           ]
         }, {
           expand: true,
           cwd: '.temp/<%= yeoman.images %>',
-          dest: '<%= yeoman.dist %>/<%= yeoman.images %>',
+          dest: '<%= yeoman.buildFolder %>/<%= yeoman.images %>',
           src: ['generated/*']
         }]
       },
@@ -241,7 +245,7 @@ module.exports = function (grunt) {
       },
       fonts: {
         expand: true,
-        cwd: 'app/lib/ionic/release/fonts/',
+        cwd: 'app/bower_components/ionic/fonts/',
         dest: '<%= yeoman.app %>/fonts/',
         src: '*'
       },
@@ -254,7 +258,7 @@ module.exports = function (grunt) {
       app: {
         expand: true,
         cwd: '<%= yeoman.app %>',
-        dest: '<%= yeoman.dist %>/',
+        dest: '<%= yeoman.buildFolder %>/',
         src: [
           '**/*',
           '!**/*.(scss,sass,css)',
@@ -263,9 +267,25 @@ module.exports = function (grunt) {
       tmp: {
         expand: true,
         cwd: '.temp',
-        dest: '<%= yeoman.dist %>/',
+        dest: '<%= yeoman.buildFolder %>/',
         src: '**/*'
       }
+    },
+    
+    compress: {
+        main: {
+            options: {
+                archive: '<%= yeoman.distFolder %>/blacktiger-viewer-mobile-<%= yeoman.version %>.zip',
+                mode: 'zip'
+            },
+            files: [
+                { 
+                    expand:true,
+                    src: '**/*',
+                    cwd: '<%= yeoman.buildFolder %>'
+                }
+            ]
+        }
     },
 
     concurrent: {
@@ -298,7 +318,7 @@ module.exports = function (grunt) {
     // cssmin: {
     //   dist: {
     //     files: {
-    //       '<%= yeoman.dist %>/<%= yeoman.styles %>/main.css': [
+    //       '<%= yeoman.buildFolder %>/<%= yeoman.styles %>/main.css': [
     //         '.temp/<%= yeoman.styles %>/**/*.css',
     //         '<%= yeoman.app %>/<%= yeoman.styles %>/**/*.css'
     //       ]
@@ -308,8 +328,8 @@ module.exports = function (grunt) {
     // uglify: {
     //   dist: {
     //     files: {
-    //       '<%= yeoman.dist %>/<%= yeoman.scripts %>/scripts.js': [
-    //         '<%= yeoman.dist %>/<%= yeoman.scripts %>/scripts.js'
+    //       '<%= yeoman.buildFolder %>/<%= yeoman.scripts %>/scripts.js': [
+    //         '<%= yeoman.buildFolder %>/<%= yeoman.scripts %>/scripts.js'
     //       ]
     //     }
     //   }
@@ -406,7 +426,7 @@ module.exports = function (grunt) {
 
   // Since Apache Ripple serves assets directly out of their respective platform
   // directories, we watch all registered files and then copy all un-built assets
-  // over to <%= yeoman.dist %>/. Last step is running cordova prepare so we can refresh the ripple
+  // over to <%= yeoman.buildFolder %>/. Last step is running cordova prepare so we can refresh the ripple
   // browser tab to see the changes. Technically ripple runs `cordova prepare` on browser
   // refreshes, but at this time you would need to re-run the emulator to see changes.
   grunt.registerTask('ripple', ['wiredep', 'newer:copy:app', 'ripple-emulator']);
@@ -467,8 +487,8 @@ module.exports = function (grunt) {
   ]);
 
   grunt.registerTask('serve', function (target) {
-    if (target === 'compress') {
-      return grunt.task.run(['compress', 'ionic:serve']);
+    if (target === 'build') {
+      return grunt.task.run(['build', 'ionic:serve']);
     }
 
     grunt.config('concurrent.ionic.tasks', ['ionic:serve', 'watch']);
@@ -497,7 +517,7 @@ module.exports = function (grunt) {
   ]);
 
 
-  grunt.registerTask('compress', [
+  grunt.registerTask('build', [
     'clean',
     'ngconstant:production',
     'wiredep',
@@ -510,7 +530,8 @@ module.exports = function (grunt) {
     'cssmin',
     'uglify',
     'usemin',
-    'htmlmin'
+    'htmlmin',
+    'compress'
   ]);
 
   grunt.registerTask('coverage', 
@@ -522,6 +543,6 @@ module.exports = function (grunt) {
     'wiredep',
     'newer:jshint',
     'karma:continuous',
-    'compress'
+    'build'
   ]);
 };
