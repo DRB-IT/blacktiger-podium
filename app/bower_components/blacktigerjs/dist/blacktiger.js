@@ -8,11 +8,10 @@
  * 
  * The `blacktiger` module defines services etc. for communicating with a Blacktiger server.
  * 
- * It requires ngCookies, ngResource and LocalStorageModule.
+ * It requires ngResource and LocalStorageModule.
  *
  */
 var $btmod = angular.module('blacktiger', [
-    'ngCookies',
     'ngResource',
     'LocalStorageModule'
 ]);
@@ -23,7 +22,7 @@ $btmod.config(["$httpProvider", function($httpProvider) {
 
 $btmod.run(["HistorySvc", function(HistorySvc) {
     // Dummy to make sure that HistorySvc is initialized from the beginning.
-    HistorySvc.getCookieName();
+    HistorySvc.getVariableName();
 }]);
 
 /*global $btmod*/
@@ -188,10 +187,10 @@ $btmod.factory('AutoCommentRequestCancelSvc', ["$rootScope", "$timeout", "CONFIG
  * 
  * On every update this service will broadcast 'History.Updated' without any parameters.
  */
-$btmod.factory('HistorySvc', ["$rootScope", "$cookieStore", "blacktiger", "$log", function ($rootScope, $cookieStore, blacktiger, $log) {
+$btmod.factory('HistorySvc', ["$rootScope", "localStorageService", "blacktiger", "$log", function ($rootScope, localStorageService, blacktiger, $log) {
     $log.debug('Initializing HistorySvc');
-    var historyCookieName = 'meetingHistory-' + blacktiger.getInstanceId();
-    var history = $cookieStore.get(historyCookieName);
+    var historyVariableName = 'meetingHistory-' + blacktiger.getInstanceId();
+    var history = localStorageService.get(historyVariableName);
 
     var totalDurationForEntry = function (entry) {
         var duration = 0;
@@ -225,6 +224,8 @@ $btmod.factory('HistorySvc', ["$rootScope", "$cookieStore", "blacktiger", "$log"
                     
                     if(entry.calls.length === 0) {
                         entriesToDelete.push(key);
+                    } else {
+                        entry.firstCall = entry.calls[0].start;
                     }
                 });
                 
@@ -235,7 +236,7 @@ $btmod.factory('HistorySvc', ["$rootScope", "$cookieStore", "blacktiger", "$log"
         } else {
             history = {};
         }
-        $cookieStore.put(historyCookieName, history);
+        localStorageService.set(historyVariableName, history);
         fireUpdated();
     };
 
@@ -319,7 +320,7 @@ $btmod.factory('HistorySvc', ["$rootScope", "$cookieStore", "blacktiger", "$log"
         }
 
         $log.debug('Persisting history.');
-        $cookieStore.put(historyCookieName, history);
+        localStorageService.set(historyVariableName, history);
         fireUpdated();
     };
 
@@ -348,7 +349,7 @@ $btmod.factory('HistorySvc', ["$rootScope", "$cookieStore", "blacktiger", "$log"
         }
         
         if (changed) {
-            $cookieStore.put(historyCookieName, history);
+            localStorageService.set(historyVariableName, history);
             fireUpdated();
         }
     };
@@ -366,7 +367,7 @@ $btmod.factory('HistorySvc', ["$rootScope", "$cookieStore", "blacktiger", "$log"
                 }
             });
         });
-        $cookieStore.put(historyCookieName, history);
+        localStorageService.set(historyVariableName, history);
         fireUpdated();
     };
 
@@ -452,8 +453,8 @@ $btmod.factory('HistorySvc', ["$rootScope", "$cookieStore", "blacktiger", "$log"
         findAllByRoomAndActive: function (room, active) {
             return doFind(angular.isObject(room) ? room.id : room, undefined, active);
         },
-        getCookieName: function () {
-            return historyCookieName;
+        getVariableName: function () {
+            return historyVariableName;
         }
     };
 }]);
@@ -582,6 +583,18 @@ $btmod.factory('MeetingSvc', ["$rootScope", "PushEventSvc", "ParticipantSvc", "$
         return null;
     };
 
+    var hasHost = function (room) {
+        var i;
+        if (room && angular.isArray(room.participants)) {
+            for (i = 0; i < room.participants.length; i++) {
+                if (room.participants[i].host === true) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    };
+    
     var getParticipantFromRoomByChannel = function (room, channel) {
         var i;
         if (room && angular.isArray(room.participants)) {
@@ -704,6 +717,7 @@ $btmod.factory('MeetingSvc', ["$rootScope", "PushEventSvc", "ParticipantSvc", "$
 
         if (participant !== null && participant.muted) {
             participant.muted = false;
+            participant.commentRequested = false;  // Force the comment request to false now – they have been unmuted
             $rootScope.$broadcast('Meeting.Change', room, participant);
         }
     };
@@ -778,8 +792,16 @@ $btmod.factory('MeetingSvc', ["$rootScope", "PushEventSvc", "ParticipantSvc", "$
             participant.commentRequested = false;
         },
         unmuteByRoomAndChannel: function (room, participant) {
+            if(!hasHost(getRoomById(room))) {
+                $log.warn('Room \'' + room + '\' has no host. It is not possible to unmute participants in rooms without a host.')
+                return;
+            }
+
             ParticipantSvc.unmute(room, participant.channel);
             participant.commentRequested = false;
+        },
+        clear: function() {
+            rooms = [];
         }
     };
 }]);
@@ -907,9 +929,23 @@ $btmod.factory('PushEventSvc', ["$rootScope", "StompSvc", "RoomSvc", "LoginSvc",
 
     };
 
-    var initializeSocket = function () {
+    var resolveRooms = function() {
+        $rootScope.$broadcast('PushEventSvc.ResolvingRooms');
+        return RoomSvc.query('full').$promise.then(function (result) {
+            var rooms = [];
+            angular.forEach(result, function (room) {
+                rooms.push(room);
+                $rootScope.$broadcast('PushEvent.ConferenceStart', room, true);
+            });
+
+            return rooms;
+        });
+    };
+    
+    var initializeSocket = function (options) {
         $rootScope.$broadcast('PushEventSvc.Initializing');
         var deferred = $q.defer();
+        var _options = angular.isObject(options) ? options : {};
 
         var user = LoginSvc.getCurrentUser();
 
@@ -927,24 +963,25 @@ $btmod.factory('PushEventSvc', ["$rootScope", "StompSvc", "RoomSvc", "LoginSvc",
         stompClient = StompSvc(blacktiger.getServiceUrl() + 'socket'); // jshint ignore:line
         stompClient.connect(null, null, function () {
             connected = true;
+            $rootScope.$broadcast('PushEventSvc.WebsocketConnected');
 
             if (user.roles.indexOf('ROLE_ADMIN') >= 0) {
-                stompClient.subscribe('/queue/events/*', function (message) {
-                    var e = angular.fromJson(message.body);
-                    handleEvent(e);
-                });
-                fireInitialized();
-            } else if (user.roles.indexOf('ROLE_HOST') >= 0) {
-                RoomSvc.query('full').$promise.then(function (result) {
-                    var rooms = [];
-                    angular.forEach(result, function (room) {
-                        rooms.push(room);
-                        $rootScope.$broadcast('PushEvent.ConferenceStart', room, true);
+                resolveRooms().then(function (rooms) {
+                    $rootScope.$broadcast('PushEventSvc.SubscribingEvents');
+                    stompClient.subscribe('/queue/events/*', function (message) {
+                        var e = angular.fromJson(message.body);
+                        handleEvent(e);
                     });
-                    
+                    fireInitialized();
+                });
+                
+                
+            } else if (user.roles.indexOf('ROLE_HOST') >= 0) {
+                resolveRooms().then(function (rooms) {
                     if(rooms.length === 0) {
                         $rootScope.$broadcast('PushEventSvc.NoRooms');
                     } else {
+                        $rootScope.$broadcast('PushEventSvc.SubscribingEvents');
                         stompClient.subscribe('/queue/events/' + rooms[0].id, function (message) {
                             var e = angular.fromJson(message.body);
                             handleEvent(e);
@@ -952,6 +989,9 @@ $btmod.factory('PushEventSvc', ["$rootScope", "StompSvc", "RoomSvc", "LoginSvc",
                     }
                     fireInitialized();
                 });
+            } else {
+                $rootScope.$broadcast('PushEventSvc.NoRooms');
+                fireInitialized();
             }
 
         }, function (error) {
@@ -961,13 +1001,13 @@ $btmod.factory('PushEventSvc', ["$rootScope", "StompSvc", "RoomSvc", "LoginSvc",
             } else {
                 deferred.reject(error);
             }
-        }, '/');
+        }, _options.enforcedHeartbeatInterval);
         return deferred.promise;
     };
 
     return {
-        connect: function () {
-            return initializeSocket();
+        connect: function (options) {
+            return initializeSocket(options);
         },
         disconnect: function () {
             var deferred = $q.defer();
@@ -1076,9 +1116,9 @@ $btmod.factory('SipUserSvc', ["$http", "blacktiger", "$rootScope", "$q", functio
  * Service for communicating with the server over the Stomp protocol.
  * See http://jmesnil.net/stomp-websocket/doc/ for more info.
  */
-$btmod.factory('StompSvc', ["$rootScope", function ($rootScope) {
+$btmod.factory('StompSvc', ["$rootScope", "$interval", function ($rootScope, $interval) {
     var stompClient = {};
-
+    
     function NGStomp(url) {
         if(url.indexOf('http://') === 0) {
             url = 'ws://' + url.substr(7);
@@ -1102,16 +1142,25 @@ $btmod.factory('StompSvc', ["$rootScope", function ($rootScope) {
         this.stompClient.send(queue, headers, data);
     };
 
-    NGStomp.prototype.connect = function (user, password, onConnect, onError) {
+    NGStomp.prototype.connect = function (user, password, onConnect, onError, enforcedHeartbeatInterval) {
         // The Spring Stomp implementation does not like user/password, even though it should just ignore it.
         // Sending empty headers instead of user/pass.
+        var that = this;
         this.stompClient.connect({},
                 function (frame) {
+                    if(angular.isNumber(enforcedHeartbeatInterval)) {
+                        that.heartbeatPromise = $interval(function() {
+                            that.stompClient.ws.send('\x0A');
+                        }, enforcedHeartbeatInterval);
+                    }
                     $rootScope.$apply(function () {
                         onConnect.apply(stompClient, frame);
                     });
                 },
                 function (frame) {
+                    if(angular.isDefined(that.heartbeatPromise)) {
+                        $interval.cancel(that.heartbeatPromise);
+                    }
                     $rootScope.$apply(function () {
                         onError.apply(frame);
                     });

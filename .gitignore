@@ -10,3 +10,5 @@ www
 coverage
 nbproject
 .temp
+app/config_prod.json
+app/config_test.json

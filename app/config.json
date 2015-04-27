@@ -1,5 +1,5 @@
 {
-    "serviceUrl": "http://192.168.87.104:8084/blacktiger",
+    "serviceUrl": "http://b.telesal.org",
     "commentRequestTimeout": 60000,
     "hightlightTimeout": 15000
 }

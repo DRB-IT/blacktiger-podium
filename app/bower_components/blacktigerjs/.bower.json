@@ -1,7 +1,7 @@
 {
   "name": "blacktigerjs",
   "main": "dist/blacktiger.js",
-  "version": "0.2.3",
+  "version": "0.2.11",
   "ignore": [
     "bower_components/**",
     "nbproject/**",
@@ -30,11 +30,11 @@
     "url": "https://github.com/DRB-IT/blacktigerjs"
   },
   "homepage": "https://github.com/DRB-IT/blacktigerjs",
-  "_release": "0.2.3",
+  "_release": "0.2.11",
   "_resolution": {
     "type": "version",
-    "tag": "v0.2.3",
-    "commit": "46a322084a018b7e85326bcbfc574ef043c1adf8"
+    "tag": "v0.2.11",
+    "commit": "7516193a188d9d0c0be99d2881a50987693775c5"
   },
   "_source": "git://github.com/DRB-IT/blacktigerjs.git",
   "_target": "0.2.x",
