@@ -34,7 +34,7 @@ module.exports = function (grunt) {
     // This creates an Angular Module that can be injected via ENV
     // Add any desired constants to the ENV objects below.
     // https://github.com/diegonetto/generator-ionic#environment-specific-configuration
-    ngconstant: {
+    /*ngconstant: {
       options: {
         space: '  ',
         wrap: '"use strict";\n\n {%= __ngModule %}',
@@ -57,7 +57,7 @@ module.exports = function (grunt) {
           }
         }
       }
-    },
+    },*/
 
     // Watches files for changes and runs tasks based on the changed files
     watch: {
@@ -79,7 +79,7 @@ module.exports = function (grunt) {
       },
       gruntfile: {
         files: ['Gruntfile.js'],
-        tasks: ['ngconstant:development', 'newer:copy:app']
+        tasks: [/*'ngconstant:development', */'newer:copy:app']
       }
     },
 
@@ -129,6 +129,7 @@ module.exports = function (grunt) {
           dot: true,
           src: [
             '.temp',
+            '<%= yeoman.distFolder %>/*',
             '<%= yeoman.buildFolder %>/*',
             '!<%= yeoman.buildFolder %>/.git*'
           ]
@@ -508,7 +509,7 @@ module.exports = function (grunt) {
 
   grunt.registerTask('init', [
     'clean',
-    'ngconstant:development',
+    //'ngconstant:development',
     'wiredep',
     'concurrent:server',
     'autoprefixer',
@@ -519,7 +520,7 @@ module.exports = function (grunt) {
 
   grunt.registerTask('build', [
     'clean',
-    'ngconstant:production',
+    //'ngconstant:production',
     'wiredep',
     'useminPrepare',
     'concurrent:dist',
