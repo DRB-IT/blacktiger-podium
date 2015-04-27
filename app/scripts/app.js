@@ -28,7 +28,7 @@ blacktigerApp
             });
 
             $rootScope.$on('login', function () {
-                PushEventSvc.connect().then(function() {
+                PushEventSvc.connect({enforcedHeartbeatInterval:30000}).then(function() {
                     $location.path('/comments');
                     $rootScope.updateCurrentRoom();
                 }, function() {
