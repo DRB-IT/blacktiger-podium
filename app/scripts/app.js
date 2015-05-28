@@ -52,11 +52,15 @@ blacktigerApp
             AutoCommentRequestCancelSvc.start();
         })
 
-        .config(function ($stateProvider, $urlRouterProvider, blacktigerProvider, CONFIG) {
+        .config(function ($stateProvider, $urlRouterProvider, blacktigerProvider, CONFIG, $ionicConfigProvider) {
             'use strict';
             if (CONFIG.serviceUrl) {
                 blacktigerProvider.setServiceUrl(CONFIG.serviceUrl);
             }
+            
+            $ionicConfigProvider.tabs.position('bottom');
+            $ionicConfigProvider.navBar.alignTitle('center');
+            
             $stateProvider
                     .state('signin', {
                         url: '/signin',
