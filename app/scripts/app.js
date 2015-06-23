@@ -1,4 +1,5 @@
-var blacktigerApp = angular.module('blacktiger-podium', ['ionic', 'blacktiger-podium.controllers', 'blacktiger-podium.services', 'blacktiger']);
+var blacktigerApp = angular.module('blacktiger-podium', ['ionic', 'blacktiger-podium.controllers', 'blacktiger-podium.services', 'blacktiger',
+'pascalprecht.translate']);
 
 blacktigerApp
         .run(function ($ionicPlatform, $rootScope, LoginSvc, $location, PushEventSvc, AutoCommentRequestCancelSvc, MeetingSvc, $window) {
@@ -14,9 +15,9 @@ blacktigerApp
                     StatusBar.styleDefault();
                 }
             });
-            
+
             $rootScope.context = {};
-    
+
             LoginSvc.authenticate().then(angular.noop, function () {
                 $location.path('/signin');
             });
@@ -35,11 +36,11 @@ blacktigerApp
                     $window.alert('Unable to connect');
                 });
             });
-            
+
             $rootScope.$on('PushEventSvc.Lost_Connection', function() {
                 $window.alert('Lost Connection');
             });
-            
+
             $rootScope.updateCurrentRoom = function () {
                 var ids = MeetingSvc.findAllIds();
                 if ($rootScope.currentUser && $rootScope.currentUser.roles.indexOf('ROLE_HOST') >= 0 && ids.length > 0) {
@@ -52,15 +53,15 @@ blacktigerApp
             AutoCommentRequestCancelSvc.start();
         })
 
-        .config(function ($stateProvider, $urlRouterProvider, blacktigerProvider, CONFIG, $ionicConfigProvider) {
+        .config(function ($stateProvider, $urlRouterProvider, $translateProvider, blacktigerProvider, CONFIG, $ionicConfigProvider) {
             'use strict';
             if (CONFIG.serviceUrl) {
                 blacktigerProvider.setServiceUrl(CONFIG.serviceUrl);
             }
-            
+
             $ionicConfigProvider.tabs.position('bottom');
             $ionicConfigProvider.navBar.alignTitle('center');
-            
+
             $stateProvider
                     .state('signin', {
                         url: '/signin',
@@ -86,7 +87,7 @@ blacktigerApp
                             }
                         }
                     })
-                    
+
                     .state('tab.settings', {
                         url: '/settings',
                         views: {
@@ -110,6 +111,23 @@ blacktigerApp
             // if none of the above states are matched, use this as the fallback
             $urlRouterProvider.otherwise('/tab/comments');
 
+            $translateProvider.useStaticFilesLoader({
+                prefix: 'scripts/i18n/blacktiger-locale-',
+                suffix: '.json'
+            });
+
+            $translateProvider.addInterpolation('$translateMessageFormatInterpolation');
+            $translateProvider.registerAvailableLanguageKeys(['en', 'da', 'no', 'se', 'es'], {
+                'da*': 'da',
+                'no*': 'no',
+                'nn*': 'no',
+                'nb*': 'no',
+                'se*': 'se',
+                'es*': 'es',
+                '*': 'en'
+            });
+
+            $translateProvider.determinePreferredLanguage();
         });
 
 /** BOOTSTRAP **/

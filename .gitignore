@@ -12,3 +12,4 @@ nbproject
 .temp
 app/config_prod.json
 app/config_test.json
+app/bower_components

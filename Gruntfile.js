@@ -160,7 +160,7 @@ module.exports = function (grunt) {
       }
     },
 
-    
+
 
     // Reads HTML for usemin blocks to enable smart builds that automatically
     // concat, minify and revision files. Creates configurations in memory so
@@ -272,7 +272,7 @@ module.exports = function (grunt) {
         src: '**/*'
       }
     },
-    
+
     compress: {
         main: {
             options: {
@@ -280,7 +280,7 @@ module.exports = function (grunt) {
                 mode: 'zip'
             },
             files: [
-                { 
+                {
                     expand:true,
                     src: '**/*',
                     cwd: '<%= yeoman.buildFolder %>'
@@ -535,7 +535,7 @@ module.exports = function (grunt) {
     'compress'
   ]);
 
-  grunt.registerTask('coverage', 
+  grunt.registerTask('coverage',
     ['karma:continuous',
     'connect:coverage:keepalive'
   ]);

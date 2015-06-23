@@ -1,20 +1,18 @@
-<ion-view view-title="Sign in">
+<ion-view view-title="{{'LOGIN.LOG_IN' | translate}}">
     <ion-content>
         <div class="list">
             <label class="item item-input">
-                <span class="input-label">Username</span>
+                <span class="input-label" translate="LOGIN.USERNAME"></span>
                 <input type="text" ng-model="user.username">
             </label>
             <label class="item item-input">
-                <span class="input-label">Password</span>
+                <span class="input-label" translate="LOGIN.PASSWORD"></span>
                 <input type="password" ng-model="user.password">
             </label>
         </div>
         <div class="padding">
-            <button class="button button-block button-positive" ng-click="signIn(user)">
-                Sign in
-            </button>
-            
+            <button class="button button-block button-positive" ng-click="signIn(user)" translate="LOGIN.LOG_IN"></button>
+
         </div>
     </ion-content>
 </ion-view>
