@@ -116,14 +116,15 @@ blacktigerApp
                 suffix: '.json'
             });
 
-            $translateProvider.addInterpolation('$translateMessageFormatInterpolation');
-            $translateProvider.registerAvailableLanguageKeys(['en', 'da', 'no', 'se', 'es'], {
+            $translateProvider.registerAvailableLanguageKeys(['en', 'da', 'no', 'sv', 'es', 'is', 'fo'], {
                 'da*': 'da',
                 'no*': 'no',
                 'nn*': 'no',
                 'nb*': 'no',
-                'se*': 'se',
+                'sv*': 'se',
                 'es*': 'es',
+                'fo*': 'fo',
+                'is*': 'is',
                 '*': 'en'
             });
 

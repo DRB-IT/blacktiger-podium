@@ -1,4 +1,4 @@
-<ion-view view-title="Meeting">
+<ion-view view-title="{{'MEETING.TITLE' | translate}}">
     <ion-content>
         <div class="list">
             <div class="item item-icon-right" ng-repeat="participant in context.room.participants|filter:{host:false}" ng-class="{'positive-bg':participant.commentRequested && participant.muted}">

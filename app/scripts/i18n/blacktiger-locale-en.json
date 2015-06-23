@@ -1,0 +1,29 @@
+{
+    "LOGIN": {
+        "USERNAME": "Username",
+        "PASSWORD": "Password",
+        "LOG_IN": "Log in",
+        "INVALID_CREDENTIALS": "The username or password is wrong.",
+        "NO_CONTACT": "Unable to connect to server. Please try again later.",
+        "TITLE": "Sign in"
+    },
+    "MEETING": {
+        "TITLE": "Meeting"
+    },
+    "STOPWATCH": {
+        "TITLE": "Stopwatch",
+        "START": "Start",
+        "STOP": "Stop"
+    },
+    "SETTINGS": {
+        "TITLE": "Settings",
+        "LOGIN": "Login",
+        "LOGOUT": "Sign out"
+    },
+    "TABS": {
+        "MEETING": "@:MEETING.TITLE",
+        "SETTINGS": "@:SETTINGS.TITLE",
+        "STOPWATCH": "@:STOPWATCH.TITLE"
+    }
+
+}

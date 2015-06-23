@@ -1,4 +1,4 @@
-<ion-view view-title="Stopwatch" class="stopwatch">
+<ion-view view-title="{{'STOPWATCH.TITLE'|translate}}" class="stopwatch">
   <ion-content class="stable-bg">
       <div class="row light-bg padding">
           <div class="col col-center" align="center">
@@ -8,12 +8,10 @@
       <div style="height:30px"><!-- SPACER --></div>
       <div class="row padding">
           <div class="col col-50 col-offset-25" align="center">
-              <button class="button button-large" ng-click="toggle()" ng-class="{'button-positive':state==='idle','button-assertive':state!=='idle'}">
-                {{state==='idle' ? 'Start' : 'Stop'}}
-              </button>
-              
+              <button class="button button-large button-positive" ng-click="toggle()" translate="STOPWATCH.START" ng-if="state==='idle'"></button>
+              <button class="button button-large button-assertive" ng-click="toggle()" translate="STOPWATCH.STOP" ng-if="state!=='idle'"></button>
           </div>
       </div>
-      
+
   </ion-content>
 </ion-view>
